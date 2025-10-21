@@ -5,6 +5,7 @@ import pg from "pg";
 import dotenv from "dotenv";
 import cors from "cors";
 
+// Load environment variables from .env (for local development)
 dotenv.config();
 
 const app = express();
@@ -14,20 +15,22 @@ const port = process.env.PORT || 10000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
 // ✅ PostgreSQL connection
 const db = new pg.Pool({
   connectionString:
-    process.env.DATABASE_URL ||
-    "postgresql://postgres:physicsmas@localhost:5432/contact_form", // 👈 use your exact local password
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+    process.env.DATABASE_URL || "postgresql://postgres:physicsmas@localhost:5432/contact_form",
+  ssl: process.env.DATABASE_URL
+    ? { rejectUnauthorized: false } // Required for Render external/internal DB
+    : false,
 });
 
-// ✅ Root route for testing
+// ✅ Root route
 app.get("/", (req, res) => {
   res.send("🚀 DeltaQuant Backend is Live");
 });
 
-// ✅ Test route to verify DB connection
+// ✅ Test database connection
 app.get("/api/test-db", async (req, res) => {
   try {
     const result = await db.query("SELECT NOW()");
@@ -38,13 +41,18 @@ app.get("/api/test-db", async (req, res) => {
   }
 });
 
-// ✅ Contact form route
+// ✅ Contact form submission route
 app.post("/api/contact", async (req, res) => {
   const { name, email, phone, service, message } = req.body;
+
   console.log("📩 Received form data:", req.body);
 
+  // Validate required fields
   if (!name || !email || !service || !message) {
-    return res.status(400).json({ success: false, message: "⚠️ Missing required fields" });
+    return res.status(400).json({
+      success: false,
+      message: "⚠️ Missing required fields (name, email, service, message)",
+    });
   }
 
   try {
@@ -53,23 +61,16 @@ app.post("/api/contact", async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING *;
     `;
-    const values = [name, email, phone, service, message];
+    const values = [name, email, phone || null, service, message];
     const result = await db.query(query, values);
 
     console.log("✅ Data inserted successfully:", result.rows[0]);
     res.status(200).json({ success: true, data: result.rows[0] });
   } catch (err) {
-    console.error("❌ Database Error:", err);
+    console.error("❌ Database error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // ✅ Start server
 app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
-📦 Also confirm these 3 points:
-.env file (or Render Environment Variables)
-
-ini
-Copy code
-DATABASE_URL=postgresql://deltaquant_db_user:tWhNbtU0W9tDhLxkrS2X9sT4rtdyRNRg@dpg-d3kg8d15pdvs739hfci0-a/deltaquant_db
-PORT=10000
