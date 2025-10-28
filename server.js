@@ -12,7 +12,14 @@ const app = express();
 const port = process.env.PORT || 10000;
 
 // ✅ Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    "https://deltaquant-frontend-2.onrender.com", // your frontend on Render
+    "http://localhost:5500" // optional: for local testing
+  ],
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],
+}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
